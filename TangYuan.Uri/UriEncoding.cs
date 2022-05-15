@@ -73,7 +73,7 @@ namespace TangYuan.Uri
                 }
                 else if (char.IsHighSurrogate(c))
                 {
-                    if (i + i >= data.Length)
+                    if (i + 1 >= data.Length)
                     {
                         throw new ArgumentException(
                             "Invalid string: high-surrogate character at the end of string.");
