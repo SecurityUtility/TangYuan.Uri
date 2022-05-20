@@ -6,7 +6,7 @@ using BenchmarkDotNet.Engines;
 
 namespace TangYuan.Uri.Benchmark;
 
-[SimpleJob(RunStrategy.Monitoring, launchCount: 2, warmupCount: 5, targetCount: 10, invocationCount: 100000)]
+[SimpleJob(RunStrategy.Monitoring, launchCount: 1, warmupCount: 2, targetCount: 5, invocationCount: 200000)]
 public class UriEncodingBenchmark
 {
     private string? _data;
