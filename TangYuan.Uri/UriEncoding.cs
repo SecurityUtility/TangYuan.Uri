@@ -30,7 +30,7 @@ public static class UriEncoding
         int length = data.Length;
         unsafe
         {
-            fixed (char* p = &data.GetPinnableReference())
+            fixed (char* p = data)
             {
                 for (int i = 0; i < length; ++i)
                 {
