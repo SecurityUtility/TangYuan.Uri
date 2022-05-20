@@ -32,11 +32,22 @@ public static class UriEncoding
         {
             fixed (char* p = data)
             {
-                for (int i = 0; i < length; ++i)
+                int i = 0;
+                for (; i + 8 < length; i += 8)
                 {
-                    if (UriCharacters.IsUnreservedCharacter(*(p + i))) { continue; }
+                    if (!UriCharacters.IsUnreservedCharacter(*(p + i))) { return i; }
+                    if (!UriCharacters.IsUnreservedCharacter(*(p + i + 1))) { return i + 1; }
+                    if (!UriCharacters.IsUnreservedCharacter(*(p + i + 2))) { return i + 2; }
+                    if (!UriCharacters.IsUnreservedCharacter(*(p + i + 3))) { return i + 3; }
+                    if (!UriCharacters.IsUnreservedCharacter(*(p + i + 4))) { return i + 4; }
+                    if (!UriCharacters.IsUnreservedCharacter(*(p + i + 5))) { return i + 5; }
+                    if (!UriCharacters.IsUnreservedCharacter(*(p + i + 6))) { return i + 6; }
+                    if (!UriCharacters.IsUnreservedCharacter(*(p + i + 7))) { return i + 7; }
+                }
 
-                    return i;
+                for (; i < length; ++i)
+                {
+                    if (!UriCharacters.IsUnreservedCharacter(*(p + i))) { return i; }
                 }
             }
         }
