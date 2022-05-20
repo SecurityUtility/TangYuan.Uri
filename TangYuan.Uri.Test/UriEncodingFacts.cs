@@ -62,4 +62,28 @@ public class UriEncodingFacts
         string highWithoutLow = new StringBuilder().Append("normal").Append((char)0xd801).Append("text").ToString();
         Assert.Throws<ArgumentException>(() => UriEncoding.Encode(highWithoutLow));
     }
+    
+    [Fact(Skip = "good")]
+    public void benchmark()
+    {
+        string CreateRandomString(int length, double percentOfNonAsciiCode = 0.3)
+        {   
+            var random = new Random();
+            var builder = new StringBuilder(length + 1);
+            for (int i = 0; i < length; ++i)
+            {
+                builder.Append(random.NextDouble() > percentOfNonAsciiCode
+                    ? random.Next(32, 127)
+                    : random.Next(0x4e00, 0x9fff));
+            }
+
+            return builder.ToString();
+        }
+
+        string data = CreateRandomString(512);
+        for (int i = 0; i < 100000; ++i)
+        {
+            UriEncoding.Encode(data);
+        }
+    }
 }

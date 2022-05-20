@@ -9,6 +9,24 @@
         <Authors>Liu Xia (lxconan@gmail.com)</Authors>
         <Description>A URI library that fully support ISO3986</Description>
         <Copyright>Liu Xia 2022</Copyright>
+        <LangVersion>10</LangVersion>
+        <Configurations>Debug;Release;Benchmark</Configurations>
+        <Platforms>AnyCPU</Platforms>
+    </PropertyGroup>
+
+    <PropertyGroup Condition=" '$(Configuration)' == 'Benchmark' ">
+      <Optimize>true</Optimize>
+      <DebugSymbols>true</DebugSymbols>
+      <DebugType>pdbonly</DebugType>
+      <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    </PropertyGroup>
+
+    <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+      <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    </PropertyGroup>
+
+    <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+      <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
 
 </Project>

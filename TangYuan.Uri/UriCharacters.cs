@@ -1,33 +1,33 @@
 ﻿using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 
-namespace TangYuan.Uri
+namespace TangYuan.Uri;
+
+public static class UriCharacters
 {
-    public class UriCharacters
+    private static readonly HashSet<char> ReservedCharacters = new HashSet<char>
     {
-        private static readonly HashSet<char> ReservedCharacters = new HashSet<char>
-        {
-            ':', '/', '?', '#', '[', ']', '@', // gen-delims
-            '!', '$', '&', '\'', '(', ')', '*', '+', ',', ';', '=' // sub-delims
-        };
+        ':', '/', '?', '#', '[', ']', '@', // gen-delims
+        '!', '$', '&', '\'', '(', ')', '*', '+', ',', ';', '=' // sub-delims
+    };
 
-        private static readonly HashSet<char> GeneralDelimiters = new HashSet<char>
-        {
-            ':', '/', '?', '#', '[', ']', '@',
-        };
-        
-        private static readonly HashSet<char> SubDelimiters = new HashSet<char>
-        {
-            '!', '$', '&', '\'', '(', ')', '*', '+', ',', ';', '='
-        };
+    private static readonly HashSet<char> GeneralDelimiters = new HashSet<char>
+    {
+        ':', '/', '?', '#', '[', ']', '@',
+    };
+    
+    private static readonly HashSet<char> SubDelimiters = new HashSet<char>
+    {
+        '!', '$', '&', '\'', '(', ')', '*', '+', ',', ';', '='
+    };
 
-        public static bool IsReservedCharacters(char c) => ReservedCharacters.Contains(c);
-        public static bool IsGeneralDelimiters(char c) => GeneralDelimiters.Contains(c);
-        public static bool IsSubDelimiters(char c) => SubDelimiters.Contains(c);
-
-        public static bool IsUnreservedCharacter(char c)
-        {
-            return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') ||
-                   c == '-' || c == '.' || c == '_' || c == '~';
-        }
+    public static bool IsReservedCharacters(char c) => ReservedCharacters.Contains(c);
+    public static bool IsGeneralDelimiters(char c) => GeneralDelimiters.Contains(c);
+    public static bool IsSubDelimiters(char c) => SubDelimiters.Contains(c);
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool IsUnreservedCharacter(char c)
+    {
+        return c is >= 'a' and <= 'z' or >= 'A' and <= 'Z' or >= '0' and <= '9' or '-' or '.' or '_' or '~';
     }
 }

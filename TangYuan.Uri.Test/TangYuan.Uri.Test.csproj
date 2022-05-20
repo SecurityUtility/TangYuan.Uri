@@ -6,6 +6,16 @@
         <Nullable>enable</Nullable>
 
         <IsPackable>false</IsPackable>
+
+        <Configurations>Debug;Release;Benchmark</Configurations>
+
+        <Platforms>AnyCPU</Platforms>
+    </PropertyGroup>
+
+    <PropertyGroup Condition=" '$(Configuration)' == 'Benchmark' ">
+        <Optimize>true</Optimize>
+        <DebugSymbols>true</DebugSymbols>
+        <DebugType>pdbonly</DebugType>
     </PropertyGroup>
 
     <ItemGroup>
