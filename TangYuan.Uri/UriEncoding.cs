@@ -25,36 +25,6 @@ public static class UriEncoding
         "%F0", "%F1", "%F2", "%F3", "%F4", "%F5", "%F6", "%F7", "%F8", "%F9", "%FA", "%FB", "%FC", "%FD", "%FE", "%FF"
     };
 
-    private static int GetIndexOfFirstEncodeRequiredCharacter(ReadOnlySpan<char> data)
-    {
-        int length = data.Length;
-        unsafe
-        {
-            fixed (char* p = data)
-            {
-                int i = 0;
-                for (; i + 8 < length; i += 8)
-                {
-                    if (!UriCharacters.IsUnreservedCharacter(*(p + i))) { return i; }
-                    if (!UriCharacters.IsUnreservedCharacter(*(p + i + 1))) { return i + 1; }
-                    if (!UriCharacters.IsUnreservedCharacter(*(p + i + 2))) { return i + 2; }
-                    if (!UriCharacters.IsUnreservedCharacter(*(p + i + 3))) { return i + 3; }
-                    if (!UriCharacters.IsUnreservedCharacter(*(p + i + 4))) { return i + 4; }
-                    if (!UriCharacters.IsUnreservedCharacter(*(p + i + 5))) { return i + 5; }
-                    if (!UriCharacters.IsUnreservedCharacter(*(p + i + 6))) { return i + 6; }
-                    if (!UriCharacters.IsUnreservedCharacter(*(p + i + 7))) { return i + 7; }
-                }
-
-                for (; i < length; ++i)
-                {
-                    if (!UriCharacters.IsUnreservedCharacter(*(p + i))) { return i; }
-                }
-            }
-        }
-
-        return -1;
-    }
-    
     public static string Encode(string? data)
     {
         if (data == null)
@@ -63,67 +33,120 @@ public static class UriEncoding
         }
 
         // avoid memory allocation if there is no need to encode.
-        int index = GetIndexOfFirstEncodeRequiredCharacter(data.AsSpan());
+        var dataSpan = data.AsSpan();
+        int index = GetIndexOfFirstEncodeRequiredCharacter(dataSpan);
 
         if (index == -1) { return data; }
 
+        Span<char> encodingCache = stackalloc char[128];
+        var encoder = new StackCachedUrlDataEncoder(encodingCache, encodingCache.Length);
+        return encoder.Encode(dataSpan, index);
+    }
+    
+    private static unsafe int GetIndexOfFirstEncodeRequiredCharacter(ReadOnlySpan<char> data)
+    {
+        int length = data.Length;
+        fixed (char* p = data)
+        {
+            int i = 0;
+            for (; i + 8 < length; i += 8)
+            {
+                if (!UriCharacters.IsUnreservedCharacter(*(p + i))) { return i; }
+                if (!UriCharacters.IsUnreservedCharacter(*(p + i + 1))) { return i + 1; }
+                if (!UriCharacters.IsUnreservedCharacter(*(p + i + 2))) { return i + 2; }
+                if (!UriCharacters.IsUnreservedCharacter(*(p + i + 3))) { return i + 3; }
+                if (!UriCharacters.IsUnreservedCharacter(*(p + i + 4))) { return i + 4; }
+                if (!UriCharacters.IsUnreservedCharacter(*(p + i + 5))) { return i + 5; }
+                if (!UriCharacters.IsUnreservedCharacter(*(p + i + 6))) { return i + 6; }
+                if (!UriCharacters.IsUnreservedCharacter(*(p + i + 7))) { return i + 7; }
+            }
+
+            for (; i < length; ++i)
+            {
+                if (!UriCharacters.IsUnreservedCharacter(*(p + i))) { return i; }
+            }
+        }
+
+        return -1;
+    }
+
+    private static unsafe string DoEncode(ReadOnlySpan<char> dataSpan, int indexToStart)
+    {
         // encode at the first non unreserved character occurred. Of course, the first
         // character can be a non unreserved character.
-        var encoded = index == 0
-            ? new StringBuilder(data.Length + 64)
-            : new StringBuilder(data, 0, index, data.Length + 64);
+        int length = dataSpan.Length;
+        var encoded = new StringBuilder(length * 2);
+        if (indexToStart > 0) { encoded.Append(dataSpan.Slice(0, indexToStart)); }
 
-        for (int i = index; i < data.Length;)
+        fixed (char* p = dataSpan)
         {
-            char c = data[i];
-            
-            // The UTF-16 encoding may be 1 or 2 word per codepoint. Each word can be:
-            //
-            // * For U+0000 ~ U+D7FF: the encoded word is also 0x0000 ~ 0xD7FF
-            // * For U+E000 ~ U+FFFF: the encoded word is also 0xE000 ~ 0xFFFF
-            // * For U+010000 ~ U+10FFFF: these code points will be encoded into
-            //       surrogate pairs. Each word will be either in 0xD800 – 0xDBFF or
-            //       0xDC00 – 0xDFFF
-            //
-            // So there is no need to validate if the character is in valid range. We
-            // just judge which kind of character it is.
+            for (int i = indexToStart; i < length;)
+            {
+                char c = *(p + i);
 
-            if (UriCharacters.IsUnreservedCharacter(c))
-            {
-                encoded.Append(c);
-                ++i;
-            }
-            else if (char.IsHighSurrogate(c))
-            {
-                if (i + 1 >= data.Length)
+                // The UTF-16 encoding may be 1 or 2 word per codepoint. Each word can be:
+                //
+                // * For U+0000 ~ U+D7FF: the encoded word is also 0x0000 ~ 0xD7FF
+                // * For U+E000 ~ U+FFFF: the encoded word is also 0xE000 ~ 0xFFFF
+                // * For U+010000 ~ U+10FFFF: these code points will be encoded into
+                //       surrogate pairs. Each word will be either in 0xD800 – 0xDBFF or
+                //       0xDC00 – 0xDFFF
+                //
+                // So there is no need to validate if the character is in valid range. We
+                // just judge which kind of character it is.
+
+                if (UriCharacters.IsUnreservedCharacter(c))
                 {
-                    throw new ArgumentException(
-                        "Invalid string: high-surrogate character at the end of string.");
+                    encoded.Append(c);
+                    ++i;
                 }
-
-                char next = data[i + 1];
-                if (!char.IsLowSurrogate(next))
+                else if (char.IsHighSurrogate(c))
                 {
-                    throw new ArgumentException("Invalid string: high-surrogate without low-surrogate.");
-                }
+                    if (i + 1 >= length)
+                    {
+                        throw new ArgumentException(
+                            "Invalid string: high-surrogate character at the end of string.");
+                    }
 
-                ReadOnlySpan<char> codePointToEncode = data.AsSpan(i, 2);
-                EncodingCodePoint(codePointToEncode, encoded);
-                i += 2;
-            }
-            else if (char.IsLowSurrogate(c))
-            {
-                throw new ArgumentException("Invalid string: low-surrogate without high-surrogate.");
-            }
-            else
-            {
-                ReadOnlySpan<char> codePointToEncode = data.AsSpan(i, 1);
-                EncodingCodePoint(codePointToEncode, encoded);
-                ++i;
+                    char next = *(p + i + 1);
+                    if (!char.IsLowSurrogate(next))
+                    {
+                        throw new ArgumentException("Invalid string: high-surrogate without low-surrogate.");
+                    }
+
+                    EncodingCodePoint2(p + i, 2, encoded);
+                    i += 2;
+                }
+                else if (char.IsLowSurrogate(c))
+                {
+                    throw new ArgumentException("Invalid string: low-surrogate without high-surrogate.");
+                }
+                else
+                {
+                    EncodingCodePoint2(p + i, 1, encoded);
+                    ++i;
+                }
             }
         }
 
         return encoded.ToString();
+    }
+    
+    private static unsafe void EncodingCodePoint2(char* codePoint, int length, StringBuilder encoded)
+    {
+        // The maximum encoded length of one UTF-8 code point is 4 bytes.
+        byte* temporaryEncodingBuffer = stackalloc byte[4] { 0, 0, 0, 0 };
+
+        // When a new URI scheme defines a component that represents textual
+        // data consisting of characters from the Universal Character Set [UCS],
+        // the data should first be encoded as octets according to the UTF-8
+        // character encoding
+        int encodedBytes = Encoding.UTF8.GetBytes(codePoint, length, temporaryEncodingBuffer, 4);
+        for (int encodedIndex = 0; encodedIndex < encodedBytes; ++encodedIndex)
+        {
+            byte escapedByte = *(temporaryEncodingBuffer + encodedIndex);
+            encoded.Append(ByteToHex[escapedByte]);
+        }
     }
 
     private static void EncodingCodePoint(ReadOnlySpan<char> codePoint, StringBuilder encoded)

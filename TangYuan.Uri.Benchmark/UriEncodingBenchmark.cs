@@ -6,7 +6,7 @@ using BenchmarkDotNet.Engines;
 
 namespace TangYuan.Uri.Benchmark;
 
-[SimpleJob(RunStrategy.Monitoring, launchCount: 1, warmupCount: 2, targetCount: 5, invocationCount: 200000)]
+[SimpleJob(RunStrategy.Monitoring, launchCount: 1, warmupCount: 2, targetCount: 5, invocationCount: 400000)]
 public class UriEncodingBenchmark
 {
     private string? _data;
@@ -16,11 +16,14 @@ public class UriEncodingBenchmark
     [SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
     [SuppressMessage("ReSharper", "UnusedAutoPropertyAccessor.Global")]
     public int Length { get; set; }
+    
+    [Params(0.1, 0.5, 0.7)]
+    public double PercentOfNonAsciiCode { get; set; }
 
     [IterationSetup]
     public void InitializeData()
     {
-        _data = CreateRandomString(Length);
+        _data = CreateRandomString(Length, PercentOfNonAsciiCode);
     }
 
     [Benchmark]
