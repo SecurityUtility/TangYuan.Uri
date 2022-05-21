@@ -24,6 +24,7 @@ public class UriEncodingBenchmark
     public void InitializeData()
     {
         _data = CreateRandomString(Length, PercentOfNonAsciiCode);
+        Console.WriteLine($"Generated Data: {_data}");
     }
 
     [Benchmark]
@@ -32,15 +33,15 @@ public class UriEncodingBenchmark
     [Benchmark]
     public string UsingSystemEncoding() => _urlEncoder.Encode(_data!);
 
-    private string CreateRandomString(int length, double percentOfNonAsciiCode = 0.3)
+    private static string CreateRandomString(int length, double percentOfNonAsciiCode = 0.3)
     {   
         var random = new Random();
         var builder = new StringBuilder(length + 1);
         for (int i = 0; i < length; ++i)
         {
             builder.Append(random.NextDouble() > percentOfNonAsciiCode
-                ? random.Next(32, 127)
-                : random.Next(0x4e00, 0x9fff));
+                ? (char)random.Next(32, 127)
+                : (char)random.Next(0x4e00, 0x9fff));
         }
 
         return builder.ToString();

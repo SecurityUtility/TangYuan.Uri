@@ -82,7 +82,7 @@ internal ref struct StackCachedUrlDataEncoder
                         FlushCache();
                     }
 
-                    AccumulateCopy(c);
+                    CopyToHeapBuilder(c);
                     _cacheStatus = CacheStatusCopy;
                     ++i;
                     continue;
@@ -102,11 +102,6 @@ internal ref struct StackCachedUrlDataEncoder
                         throw new ArgumentException("Invalid string: high-surrogate without low-surrogate.");
                     }
 
-                    if (_cacheStatus == CacheStatusCopy)
-                    {
-                        FlushCache();
-                    }
-                    
                     AccumulateEncode(p + i, 2);
                     _cacheStatus = CacheStatusEncode;
                     i += 2;
@@ -119,11 +114,6 @@ internal ref struct StackCachedUrlDataEncoder
                 }
 
                 {
-                    if (_cacheStatus == CacheStatusCopy)
-                    {
-                        FlushCache();
-                    }
-
                     AccumulateEncode(p + i, 1);
                     _cacheStatus = CacheStatusEncode;
                     ++i;
@@ -135,19 +125,17 @@ internal ref struct StackCachedUrlDataEncoder
         return _heapBuilder.ToString();
     }
 
+    private void CopyToHeapBuilder(char c)
+    {
+        _heapBuilder.Append(c);
+    }
+
     private unsafe void AccumulateEncode(char* firstCharacter, int length)
     {
         ReserveCacheSpace(length);
         ReadOnlySpan<char> source = new Span<char>(firstCharacter, length);
         source.CopyTo(_cache.Slice(_cachePosition, length));
         _cachePosition += length;
-    }
-
-    private void AccumulateCopy(char c)
-    {
-        ReserveCacheSpace(1);
-        _cache[_cachePosition] = c;
-        ++_cachePosition;
     }
 
     private void ReserveCacheSpace(int numberOfCharacters)
@@ -161,26 +149,7 @@ internal ref struct StackCachedUrlDataEncoder
     private void FlushCache()
     {
         if (_cachePosition == 0) { return; }
-        
-        switch (_cacheStatus)
-        {
-            case CacheStatusInitial:
-                throw new InvalidOperationException("This is likely a bug: initial status flush.");
-            case CacheStatusEncode:
-                FlushCacheEncode();
-                break;
-            case CacheStatusCopy:
-                FlushCacheCopy();
-                break;
-            default:
-                throw new NotSupportedException($"Invalid cache status: {_cacheStatus}");
-        }
-    }
-
-    private void FlushCacheCopy()
-    {
-        _heapBuilder.Append(_cache[.._cachePosition]);
-        _cachePosition = 0;
+        FlushCacheEncode();
     }
 
     private void FlushCacheEncode()
