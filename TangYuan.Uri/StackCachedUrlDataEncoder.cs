@@ -133,7 +133,7 @@ internal ref struct StackCachedUrlDataEncoder
     private unsafe void AccumulateEncode(char* firstCharacter, int length)
     {
         ReserveCacheSpace(length);
-        ReadOnlySpan<char> source = new Span<char>(firstCharacter, length);
+        var source = new ReadOnlySpan<char>(firstCharacter, length);
         source.CopyTo(_cache.Slice(_cachePosition, length));
         _cachePosition += length;
     }

@@ -5,18 +5,18 @@ namespace TangYuan.Uri;
 
 public static class UriCharacters
 {
-    private static readonly HashSet<char> ReservedCharacters = new HashSet<char>
+    private static readonly HashSet<char> ReservedCharacters = new()
     {
         ':', '/', '?', '#', '[', ']', '@', // gen-delims
         '!', '$', '&', '\'', '(', ')', '*', '+', ',', ';', '=' // sub-delims
     };
 
-    private static readonly HashSet<char> GeneralDelimiters = new HashSet<char>
+    private static readonly HashSet<char> GeneralDelimiters = new()
     {
         ':', '/', '?', '#', '[', ']', '@',
     };
     
-    private static readonly HashSet<char> SubDelimiters = new HashSet<char>
+    private static readonly HashSet<char> SubDelimiters = new()
     {
         '!', '$', '&', '\'', '(', ')', '*', '+', ',', ';', '='
     };

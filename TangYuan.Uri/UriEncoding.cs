@@ -38,7 +38,7 @@ public static class UriEncoding
 
         if (index == -1) { return data; }
 
-        Span<char> encodingCache = stackalloc char[128];
+        Span<char> encodingCache = stackalloc char[32];
         var encoder = new StackCachedUrlDataEncoder(encodingCache, encodingCache.Length);
         return encoder.Encode(dataSpan, index);
     }
